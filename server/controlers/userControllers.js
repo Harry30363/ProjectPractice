@@ -1,8 +1,9 @@
 const asyncHandler = require("express-async-handler");
+const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const User = require("../model/userModel"); // Corrected variable name to 'User'
 require("dotenv").config();
-
+const JWT_SECRET = "xyz123abc";
 const registerUser = asyncHandler(async (req, res) => {
     const { firstName, lastName, age, gender, bloodGroup, email, phoneNumber, password } = req.body;
 
@@ -47,15 +48,17 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new Error("Please provide email and password");
     }
     const user = await User.findOne({ email });
+    const token = jwt.sign({id:user._id},JWT_SECRET,{expiresIn:"1h"});
     if (user && (await bcrypt.compare(password, user.password))) {
         res.status(200).json({
-            message: "User logged in successfully",
-            user: {
-                id: user._id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-            },
+            message: "User logged in successfully",token
+           
+            // user: {
+            //     id: user._id,
+            //     firstName: user.firstName,
+            //     lastName: user.lastName,
+            //     email: user.email,
+            // },
         });
     } else {
         res.status(401);
@@ -63,4 +66,27 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = { registerUser, loginUser };
+const userProfile=asyncHandler(async(req,res)=>{
+    // const {email}=req.body
+
+    const id=req.user.id
+
+    const user=await User.findById(id)
+    // console.log(user.age)
+    res.send({user})
+})
+
+const updateuserprofile = async (req,res)=>{
+    const {firstName,email,phoneNumber,age} = req.body;
+
+    const user = User.findOne({email});
+    const updatedUser = await user.findOneAndUpdate(
+        {email},
+        {firstName,phoneNumber,age},
+        {new:true},
+    );
+    res.json({user:updatedUser});
+    console.log("updated");
+}
+
+module.exports = { registerUser, loginUser,userProfile,updateuserprofile };
